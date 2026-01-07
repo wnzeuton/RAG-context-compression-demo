@@ -14,4 +14,5 @@ class Retriever:
         query_emb = self.model.encode([text])
         distances, indices = self.index.search(np.array(query_emb).astype("float32"), self.top_k)
         results = [self.chunks[i] for i in indices[0]]
+
         return results

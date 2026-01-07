@@ -13,8 +13,17 @@ print(f"Created {len(chunks)} chunks")
 embeddings, chunks_with_meta = embed_chunks(chunks)
 print(f"Created embeddings of shape {embeddings.shape}")
 
+chunks_with_embeddings = []
+for c, emb in zip(chunks_with_meta, embeddings):
+    chunks_with_embeddings.append({
+        "doc_id": c["doc_id"],
+        "chunk_id": c["chunk_id"],
+        "text": c["text"],
+        "embedding": emb 
+    })
+
 index = build_faiss_index(embeddings)
 print("FAISS index built and saved")
 
-save_chunk_metadata(chunks_with_meta)
+save_chunk_metadata(chunks_with_embeddings)
 print("Chunk metadata saved")
