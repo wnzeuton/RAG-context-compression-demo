@@ -40,7 +40,23 @@ tokenizer, model = load_qwen3()
 # =====================================================
 def query_qwen3(context, question):
     messages = [
-        {"role": "user", "content": f"Use the following information to answer the question accurately. Do NOT quote or refer to the source text; just answer naturally.\n\n{context}\n\nQuestion: {question}\nAnswer in one paragraph."}
+        {
+            "role": "system",
+            "content": (
+            "You are an assistant that answers questions ONLY using the provided context. "
+            "Do not use prior knowledge. "
+            "If there is no context, or if the context does not contain the answer, say 'I don't know.' "
+            "Do not mention or reference the context."
+            )
+        },
+        {
+            "role": "user",
+            "content": (
+            f"Context:\n{context}\n\n"
+            f"Question:\n{question}\n\n"
+            "Answer:"
+            )
+        }
     ]
 
     text = tokenizer.apply_chat_template(
