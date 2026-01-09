@@ -236,12 +236,19 @@ if st.button("Generate", key="generate_button"):
             for c in relevant_chunks:
                 relevant_chunks_by_doc[c["doc_name"]].append(c)
 
-            for doc_idx, (doc_name, doc_text) in enumerate(full_docs.items()):
-                with st.expander(f"📄 {doc_name}"):
-                    # All chunks for this document
-                    all_chunks = retriever.get_all_chunks_for_doc(doc_name)
+            # Prepare documents sorted by number of relevant chunks
+            docs_with_relevance = []
+            for doc_name, doc_text in full_docs.items():
+                num_relevant = len(relevant_chunks_by_doc.get(doc_name, []))
+                docs_with_relevance.append((doc_name, doc_text, num_relevant))
 
-                    # Set of start_char for relevant chunks
+            # Sort descending by num_relevant
+            docs_with_relevance.sort(key=lambda x: x[2], reverse=True)
+
+            for doc_idx, (doc_name, doc_text, num_relevant) in enumerate(docs_with_relevance):
+                # Only show documents with at least one relevant chunk first
+                with st.expander(f"📄 {doc_name} — {num_relevant}/10 relevant chunks"):
+                    all_chunks = retriever.get_all_chunks_for_doc(doc_name)
                     relevant_starts = set(c["start_char"] for c in relevant_chunks_by_doc.get(doc_name, []))
 
                     for chunk_idx, c in enumerate(all_chunks):
