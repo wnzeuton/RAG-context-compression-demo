@@ -236,31 +236,34 @@ if st.button("Generate", key="generate_button"):
             for c in relevant_chunks:
                 relevant_chunks_by_doc[c["doc_name"]].append(c)
 
-            # Prepare documents sorted by number of relevant chunks
+            # Prepare documents with relevance percentage
             docs_with_relevance = []
             for doc_name, doc_text in full_docs.items():
+                all_chunks = retriever.get_all_chunks_for_doc(doc_name)
+                total_chunks = len(all_chunks)
                 num_relevant = len(relevant_chunks_by_doc.get(doc_name, []))
-                docs_with_relevance.append((doc_name, doc_text, num_relevant))
+                percent_relevant = round((num_relevant / total_chunks) * 100) if total_chunks > 0 else 0
+                title = all_chunks[0]["title"] if all_chunks else doc_name
+                docs_with_relevance.append((doc_name, title, doc_text, num_relevant, total_chunks, percent_relevant))
 
-            # Sort descending by num_relevant
-            docs_with_relevance.sort(key=lambda x: x[2], reverse=True)
+            # Sort by percentage descending
+            docs_with_relevance.sort(key=lambda x: x[5], reverse=True)
 
-            for doc_idx, (doc_name, doc_text, num_relevant) in enumerate(docs_with_relevance):
-                # Only show documents with at least one relevant chunk first
-                with st.expander(f"📄 {doc_name} — {num_relevant}/10 relevant chunks"):
+            # Display
+            for doc_idx, (doc_name, title, doc_text, num_relevant, total_chunks, percent_relevant) in enumerate(docs_with_relevance):
+                # Expander label with title + percentage relevant
+                label = f"📄 {title} — {percent_relevant}% relevant"
+                
+                with st.expander(label, expanded=False):
                     all_chunks = retriever.get_all_chunks_for_doc(doc_name)
                     relevant_starts = set(c["start_char"] for c in relevant_chunks_by_doc.get(doc_name, []))
 
                     for chunk_idx, c in enumerate(all_chunks):
                         is_relevant = c["start_char"] in relevant_starts
-                        label = f"🟢 {c.get('section', f'Chunk {chunk_idx+1}')}" if is_relevant else f"⚪ {c.get('section', f'Chunk {chunk_idx+1}')}"
-                        
+                        dot = "🟢" if is_relevant else "⚪"
+                        label = f"{dot} {c.get('section', f'Chunk {chunk_idx+1}')}"
                         with st.expander(label):
-                            st.markdown(
-                                    f"<pre style='font-size:14px'>{c['text']}</pre>",
-                                    unsafe_allow_html=True
-                                )
-                                
+                            st.markdown(f"<pre style='font-size:14px'>{c['text']}</pre>", unsafe_allow_html=True)
 
         # =====================================================
         # Show compressed context
