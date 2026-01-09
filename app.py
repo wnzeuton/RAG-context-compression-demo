@@ -113,35 +113,32 @@ def query_qwen3(context, question, system_prompt, rag_mode):
 # =====================================================
 def highlight_chunks(doc_text, chunks):
     highlighted = doc_text
-
-    # Sort backwards so offsets don't shift
     chunks = sorted(chunks, key=lambda c: c["start_char"], reverse=True)
-
     for c in chunks:
         start, end = c["start_char"], c["end_char"]
         snippet = highlighted[start:end]
-
         highlighted = (
             highlighted[:start]
             + f"<mark style='background-color:#ffe066'>{snippet}</mark>"
             + highlighted[end:]
         )
-
     return highlighted
 
 # =====================================================
 # UI Controls
 # =====================================================
-query = st.text_input("Enter your query")
+query = st.text_input("Enter your query", key="query_input")
 
 rag_mode = st.selectbox(
     "RAG Mode",
-    ["Tight (context-only)", "Loose (context-guided)"]
+    ["Tight (context-only)", "Loose (context-guided)"],
+    key="rag_mode_selectbox"
 )
 
 compression_type = st.selectbox(
     "Compression method",
-    ["Soft (mean-pooled embeddings)", "Hard (summarize then embed)"]
+    ["Soft (mean-pooled embeddings)", "Hard (summarize then embed)"],
+    key="compression_type_selectbox"
 )
 
 ratio = st.slider(
@@ -149,26 +146,15 @@ ratio = st.slider(
     min_value=0.1,
     max_value=1.0,
     value=1.0,
-    step=0.05
-)
-
-# =====================================================
-# Timeline filter slider
-# =====================================================
-cutoff_year = st.slider(
-    "Maximum year of context",
-    min_value=2030,
-    max_value=2050,
-    value=2050,
-    step=1,
-    help="Limit the RAG context to chunks with year ≤ this value"
+    step=0.05,
+    key="compression_ratio_slider"
 )
 
 # =====================================================
 # Advanced settings
 # =====================================================
 with st.expander("Advanced settings"):
-    override_prompt = st.checkbox("Override system prompt")
+    override_prompt = st.checkbox("Override system prompt", key="override_prompt_checkbox")
 
     system_prompt = (
         TIGHT_RAG_PROMPT
@@ -180,7 +166,8 @@ with st.expander("Advanced settings"):
         "System prompt",
         value=system_prompt,
         height=150,
-        disabled=not override_prompt
+        disabled=not override_prompt,
+        key="custom_system_prompt_textarea"
     )
 
     if override_prompt:
@@ -192,7 +179,7 @@ st.markdown("---")
 # =====================================================
 # Generate button
 # =====================================================
-if st.button("Generate"):
+if st.button("Generate", key="generate_button"):
     if not query:
         st.warning("Please enter a query before generating.")
     else:
@@ -202,22 +189,17 @@ if st.button("Generate"):
         # -------------------------
         # Retrieval (fixed top_k = 10)
         # -------------------------
-        chunks = retriever.query(query)[:10]
-
-        # -------------------------
-        # Filter by year
-        # -------------------------
-        chunks = [c for c in chunks if c.get("year", 2050) <= cutoff_year]
+        relevant_chunks = retriever.query(query)[:10]
 
         # -------------------------
         # Compression
         # -------------------------
         compressed = []
-        if chunks:
+        if relevant_chunks:
             if compression_type.startswith("Soft"):
-                compressed = soft_compressor.compress(chunks, ratio)
+                compressed = soft_compressor.compress(relevant_chunks, ratio)
             else:
-                compressed = hard_compressor.compress(chunks, ratio)
+                compressed = hard_compressor.compress(relevant_chunks, ratio)
 
         # -------------------------
         # Build context
@@ -244,35 +226,43 @@ if st.button("Generate"):
         st.write(answer)
 
         # =====================================================
-        # Document-level attribution view
+        # Document-level attribution view (updated)
         # =====================================================
-        if chunks:
+        if full_docs:
             st.subheader("Retrieved Evidence in Full Documents")
 
-            chunks_by_doc = defaultdict(list)
-            for c in chunks:
-                chunks_by_doc[c["doc_name"]].append(c)
+            # Build relevant chunk mapping
+            relevant_chunks_by_doc = defaultdict(list)
+            for c in relevant_chunks:
+                relevant_chunks_by_doc[c["doc_name"]].append(c)
 
-            for doc_name, doc_chunks in chunks_by_doc.items():
+            for doc_idx, (doc_name, doc_text) in enumerate(full_docs.items()):
                 with st.expander(f"📄 {doc_name}"):
-                    doc_text = full_docs.get(doc_name)
+                    # All chunks for this document
+                    all_chunks = retriever.get_all_chunks_for_doc(doc_name)
 
-                    if not doc_text:
-                        st.warning("Original document not found.")
-                        continue
+                    # Set of start_char for relevant chunks
+                    relevant_starts = set(c["start_char"] for c in relevant_chunks_by_doc.get(doc_name, []))
 
-                    highlighted_doc = highlight_chunks(doc_text, doc_chunks)
-
-                    st.markdown(
-                        highlighted_doc,
-                        unsafe_allow_html=True
-                    )
+                    for chunk_idx, c in enumerate(all_chunks):
+                        is_relevant = c["start_char"] in relevant_starts
+                        label = f"🟢 {c.get('section', f'Chunk {chunk_idx+1}')}" if is_relevant else f"⚪ {c.get('section', f'Chunk {chunk_idx+1}')}"
+                        
+                        with st.expander(label):
+                            st.markdown(
+                                    f"<pre style='font-size:14px'>{c['text']}</pre>",
+                                    unsafe_allow_html=True
+                                )
+                                
 
         # =====================================================
         # Show compressed context
         # =====================================================
         if compressed:
             with st.expander("Compressed Context Sent to LLM"):
-                for c in compressed:
-                    st.markdown(c["text"])
-                    st.markdown("---")
+                for c_idx, c in enumerate(compressed):
+                    st.markdown(
+                        f"<pre style='font-size:14px'>{c['text']}</pre>",
+                        unsafe_allow_html=True
+                    )
+                    st.markdown("<hr/>", unsafe_allow_html=True)

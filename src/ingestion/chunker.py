@@ -1,110 +1,84 @@
 from pathlib import Path
-import re
 
-YEAR_REGEX = re.compile(r"^\d{4}$")
-
-
-def chunk_file_by_year(file_path):
+def chunk_file_by_sections(file_path: Path):
     """
     Parse a document with:
       - Title
       - Type
-      - Year-based sections
+      - Section blocks separated by '---'
+      - Each block starts with a section header line
 
     Returns:
-        List[dict]: chunks with title, type, year, text,
-                    start_char, end_char
+        List[dict]: chunks with metadata, section, and clean text
     """
-    raw_text = Path(file_path).read_text(encoding="utf-8")
-    lines = raw_text.splitlines()
+    raw_text = file_path.read_text(encoding="utf-8")
+    blocks = raw_text.split("\n---\n")
 
     title = None
     doc_type = None
-
     chunks = []
-    current_year = None
-    buffer = []
 
-    buffer_start_char = None
-    running_char_index = 0  # tracks position in raw_text
+    # Track character offsets
+    cursor = 0
 
-    for line in lines:
-        stripped = line.rstrip()
-        line_len = len(line) + 1  # +1 for newline
+    for block in blocks:
+        block_len = len(block) + len("\n---\n")
 
-        if stripped.startswith("Title:"):
-            title = stripped.replace("Title:", "").strip()
-            running_char_index += line_len
-            continue
+        lines = block.splitlines()
+        stripped_lines = [l.strip() for l in lines if l.strip()]
 
-        if stripped.startswith("Type:"):
-            doc_type = stripped.replace("Type:", "").strip()
-            running_char_index += line_len
-            continue
+        # Metadata lines
+        for line in stripped_lines:
+            if line.startswith("Title:"):
+                title = line.replace("Title:", "").strip()
+            elif line.startswith("Type:"):
+                doc_type = line.replace("Type:", "").strip()
 
-        # New year section
-        if YEAR_REGEX.match(stripped):
-            if current_year and buffer:
-                chunk_text = " ".join(buffer).strip()
-                end_char = buffer_start_char + len(chunk_text)
+        # Section blocks
+        # Skip blocks that are only metadata
+        section_header = None
+        content_lines = []
 
-                chunks.append({
-                    "title": title,
-                    "type": doc_type,
-                    "year": current_year,
-                    "text": chunk_text,
-                    "start_char": buffer_start_char,
-                    "end_char": end_char,
-                })
+        for line in stripped_lines:
+            if not line.startswith(("Title:", "Type:")):
+                if section_header is None:
+                    section_header = line  # first non-metadata line = section
+                else:
+                    content_lines.append(line)
 
-                buffer = []
-                buffer_start_char = None
+        if section_header and content_lines:
+            text = " ".join(content_lines).strip()
 
-            current_year = int(stripped)
-            running_char_index += line_len
-            continue
+            # Compute character offsets
+            header_pos = raw_text.find(section_header, cursor)
+            content_start = header_pos + len(section_header)
+            content_end = content_start + len(text)
 
-        # Normal content
-        if stripped:
-            if buffer_start_char is None:
-                buffer_start_char = running_char_index
-            buffer.append(stripped)
+            chunks.append({
+                "title": title,
+                "type": doc_type,
+                "section": section_header,
+                "start_char": content_start,
+                "end_char": content_end,
+                "text": text
+            })
 
-        running_char_index += line_len
-
-    # Final chunk
-    if current_year and buffer:
-        chunk_text = " ".join(buffer).strip()
-        end_char = buffer_start_char + len(chunk_text)
-
-        chunks.append({
-            "title": title,
-            "type": doc_type,
-            "year": current_year,
-            "text": chunk_text,
-            "start_char": buffer_start_char,
-            "end_char": end_char,
-        })
+        cursor += block_len
 
     return chunks
 
 
 def chunk_documents_from_files(file_paths):
     """
-    Chunk all files into year-based chunks with character offsets.
-
-    Returns:
-        List[dict]
+    Chunk multiple documents into section-based chunks.
     """
     all_chunks = []
 
     for path in file_paths:
-        doc_name = Path(path).name
-
-        year_chunks = chunk_file_by_year(path)
-        for chunk_id, c in enumerate(year_chunks):
+        doc_chunks = chunk_file_by_sections(path)
+        for chunk_id, c in enumerate(doc_chunks):
             all_chunks.append({
-                "doc_name": doc_name,
+                "doc_name": path.name,
                 "chunk_id": chunk_id,
                 **c
             })
