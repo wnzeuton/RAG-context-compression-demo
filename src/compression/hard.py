@@ -31,9 +31,8 @@ class HardCompressor(Compressor):
 
         compressed = []
         
-        # Calculate max_length based on level (inverse relationship)
-        # level 1.0 = max 200 tokens (least compression), level 0.1 = max 50 tokens (most compression)
-        max_length = int(50 + level * 150)
+        max_length = int(50 + (1 - level) * 150)
+        min_length = max_length - 50
 
         # Process each document separately
         for doc_title, doc_chunks in chunks_by_doc.items():
@@ -41,7 +40,7 @@ class HardCompressor(Compressor):
             combined_text = " ".join([c["text"] for c in doc_chunks])
             
             # Summarize the combined text
-            summary_text = summarize_local_safe(combined_text, max_length=max_length)
+            summary_text = summarize_local_safe(combined_text, min_length=min_length, max_length=max_length)
             
             # Embed the summary
             summary_emb = self.model.encode(summary_text)
