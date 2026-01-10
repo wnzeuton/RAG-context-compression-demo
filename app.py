@@ -143,7 +143,7 @@ compression_level = st.slider(
     "Compression level",
     min_value=0.1,
     max_value=1.0,
-    value=1.0,
+    value=0.5,
     step=0.01,
     key="compression_level_slider"
 )
@@ -172,15 +172,14 @@ with st.expander("Advanced settings"):
         system_prompt = custom_prompt
         st.warning("⚠️ Custom system prompt active")
 
-st.markdown("---")
-
 # =====================================================
 # Generate button
 # =====================================================
-if st.button("Generate", key="generate_button"):
+if st.button("Generate", key="generate_button", use_container_width=True):
     if not query:
         st.warning("Please enter a query before generating.")
     else:
+        st.markdown("---")
         start = time.time()
         st.info("Running retrieval + compression + LLM...")
 
@@ -192,16 +191,19 @@ if st.button("Generate", key="generate_button"):
         # -------------------------
         # Compression
         # -------------------------
-        compressed = []
+        context_chunks = []
         if relevant_chunks:
             if use_compression:
-                compressed = hard_compressor.compress(relevant_chunks, compression_level)
+                context_chunks = hard_compressor.compress(relevant_chunks, compression_level)
+            else:
+                context_chunks = relevant_chunks
+            
 
 
         # -------------------------
         # Build context
         # -------------------------
-        context = "\n".join(c["text"] for c in compressed) if compressed else ""
+        context = "\n".join(c["text"] for c in context_chunks) if context_chunks else ""
 
         # -------------------------
         # LLM generation
@@ -249,7 +251,7 @@ if st.button("Generate", key="generate_button"):
             # Display
             for doc_idx, (doc_name, title, doc_text, num_relevant, total_chunks, percent_relevant) in enumerate(docs_with_relevance):
                 # Expander label with title + percentage relevant
-                label = f"📄 {title} — {percent_relevant}% relevant"
+                label = f"**{title}** — :blue[{percent_relevant}% relevant]"
                 
                 with st.expander(label, expanded=False):
                     all_chunks = retriever.get_all_chunks_for_doc(doc_name)
@@ -257,17 +259,17 @@ if st.button("Generate", key="generate_button"):
 
                     for chunk_idx, c in enumerate(all_chunks):
                         is_relevant = c["start_char"] in relevant_starts
-                        dot = "🟢" if is_relevant else "⚪"
-                        label = f"{dot} {c.get('section', f'Chunk {chunk_idx+1}')}"
+                        color = "green" if is_relevant else "red"
+                        label = f":{color}[{c.get('section', f'Chunk {chunk_idx+1}')}]"
                         with st.expander(label):
                             st.markdown(f"<pre style='font-size:14px'>{c['text']}</pre>", unsafe_allow_html=True)
 
         # =====================================================
         # Show compressed context
         # =====================================================
-        if compressed:
-            with st.expander("Compressed Context Sent to LLM"):
-                for c_idx, c in enumerate(compressed):
+        if context_chunks:
+            with st.expander(":orange[Context Sent to LLM]"):
+                for c_idx, c in enumerate(context_chunks):
                     st.markdown(
                         f"<pre style='font-size:14px'>{c['text']}</pre>",
                         unsafe_allow_html=True

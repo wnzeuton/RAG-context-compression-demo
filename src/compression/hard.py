@@ -32,8 +32,8 @@ class HardCompressor(Compressor):
         compressed = []
         
         # Calculate max_length based on level (inverse relationship)
-        # level 1.0 = max 500 tokens (least compression), level 0.1 = max 50 tokens (most compression)
-        max_length = int(50 + level * 450)
+        # level 1.0 = max 200 tokens (least compression), level 0.1 = max 50 tokens (most compression)
+        max_length = int(50 + level * 150)
 
         # Process each document separately
         for doc_title, doc_chunks in chunks_by_doc.items():
