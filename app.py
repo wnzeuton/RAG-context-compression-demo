@@ -11,8 +11,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 # =====================================================
 # App setup
 # =====================================================
-st.set_page_config(page_title="Context Compression Demo")
-st.title("Context Compression Demo")
+st.set_page_config(page_title="RAG Context Compression Demo")
+st.title("RAG Context Compression Demo")
 
 with st.expander("What is this demo?", expanded=True):
     st.markdown("""
