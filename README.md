@@ -44,10 +44,9 @@ It is designed to help explore how retrieval, compression, and grounding constra
 
 ## Retrieval & Relevance
 
-- **FAISS** finds the top 10 most relevant chunks for a query  
-- **Sentence embeddings** are generated with `sentence-transformers/all-MiniLM-L6-v2` for both document chunks and the query  
-- **% relevance** = number of retrieved chunks from a document ÷ total chunks in that document  
-- High % relevance can appear even for unrelated queries (retrieval is relative)
+- **Embeddings** are generated with `sentence-transformers/all-MiniLM-L6-v2` for both document chunks and the query  
+- **FAISS** finds the top 10 most relevant chunks for a query using cosine similarity
+
 
 ---
 
