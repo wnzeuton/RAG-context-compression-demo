@@ -47,7 +47,6 @@ pydeck==0.9.1
 python-dateutil==2.9.0.post0
 pytz==2025.2
 PyYAML==6.0.3
--e git+ssh://git@github.com/wnzeuton/RAG-context-compression.git@832b8b2175f344fcbb47f017f1ad69eecf592247#egg=rag_compression_explorer
 referencing==0.37.0
 regex==2025.11.3
 requests==2.32.5
