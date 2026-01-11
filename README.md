@@ -16,6 +16,15 @@ It is designed to help explore how retrieval, compression, and grounding constra
 
 ---
 
+## Questions This Demo Explores
+
+- How much detail is lost under aggressive hard compression?
+- When does retrieval relevance become misleading?
+- How often does a small LLM hallucinate under Loose RAG?
+- How does Tight RAG affect answer completeness vs correctness?
+
+---
+
 ## Generation Modes
 
 | Mode | Description |
@@ -35,16 +44,15 @@ It is designed to help explore how retrieval, compression, and grounding constra
 
 ## Retrieval & Relevance
 
-- **FAISS** finds the top 10 most relevant chunks for a query  
-- **Sentence embeddings** are generated with `sentence-transformers/all-MiniLM-L6-v2` for both document chunks and the query  
-- **% relevance** = number of retrieved chunks from a document ÷ total chunks in that document  
-- High % relevance can appear even for unrelated queries (retrieval is relative)
+- **Embeddings** are generated with `sentence-transformers/all-MiniLM-L6-v2` for both document chunks and the query  
+- **FAISS** finds the top 10 most relevant chunks for a query using cosine similarity
+
 
 ---
 
 ## Hard Compression
 
-- Summarizes retrieved chunks using the **`sshleifer/distilbart-cnn-12-6`** model  
+- Summarizes retrieved chunks using the `sshleifer/distilbart-cnn-12-6` model  
 - Reduces context size → lower latency  
 - Higher compression may remove fine-grained details  
 - Only **compressed summaries** are sent to the LLM
@@ -55,16 +63,15 @@ It is designed to help explore how retrieval, compression, and grounding constra
 
 - Uses **Qwen3-0.6B**, a causal language model  
 - Generation is deterministic (`do_sample=False`) to reduce output variance  
-- Receives **only the context determined by retrieval and compression** (except in No RAG mode)
-
+- Enforces varying RAG modes via system prompting
 ---
 
-## Context Sent to the LLM
+## Limitations
 
-- Shows the **exact text** sent after retrieval and optional compression  
-- Critical for understanding why an answer succeeds or fails
-
----
+- Compression is abstractive and may introduce summarization bias
+- FAISS relevance is relative, not absolute
+- Results are specific to small models (Qwen3-0.6B)
+- Synthetic documents simplify real-world retrieval noise
 
 ## Running the Demo
 **IMPORTANT**: Ensure that the `.txt` files in `data/raw` are downloaded and available locally. Alternatively, you can use your own **similarly formatted** documents for RAG.
