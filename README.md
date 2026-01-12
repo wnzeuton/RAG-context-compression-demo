@@ -1,6 +1,6 @@
 # RAG Context Compression Demo
 
-This is a **Streamlit demo** illustrating **Retrieval-Augmented Generation (RAG)** and **hard context compression** in a controlled setting.  
+This is a **[Streamlit Demo](https://huggingface.co/spaces/wnzeuton/RAG-context-compression-demo)** illustrating **Retrieval-Augmented Generation (RAG)** and **hard context compression** in a controlled setting.  
 It is designed to help explore how retrieval, compression, and grounding constraints affect LLM outputs.
 
 ---
