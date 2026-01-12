@@ -74,10 +74,16 @@ It is designed to help explore how retrieval, compression, and grounding constra
 - Results are specific to small models (Qwen3-0.6B)
 - Synthetic documents simplify real-world retrieval noise
 
-## Running the Demo
+## Looking Forward
+
+Future extensions could include alternative retrieval strategies, different compression techniques (particularly extractive summarization or soft compression methods), adaptive context budgets, and evaluation metrics for faithfulness and latency. The interface can also be expanded to compare multiple models side-by-side or to study failure modes such as hallucinations under aggressive compression.
+
+## Running the Demo Locally
 **IMPORTANT**: Ensure that the `.txt` files in `data/raw` are downloaded and available locally. Alternatively, you can use your own **similarly formatted** documents for RAG.
 
 ```bash
 pip install -r requirements.txt
 python3 -m scripts.build_index
 streamlit run app.py
+```
+*If you counter issues installing requirements, consider removing all version specifications.*
